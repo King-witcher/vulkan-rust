@@ -7,28 +7,28 @@ use vulkano::{
     instance::{Instance, InstanceCreateFlags, InstanceCreateInfo, InstanceExtensions},
 };
 
+use crate::window::{VwWindow, VwWindowCreateInfo};
+
 extern crate sdl2 as sdl;
 extern crate vulkano;
 
 mod vk_instance;
+mod window;
 
 fn main() {
     let vk_lib = VulkanLibrary::new().unwrap();
-    let sdl = sdl::init().unwrap();
-
-    let video = sdl.video().unwrap();
-    let window = video.window("VkWizard", 800, 600).vulkan().build().unwrap();
-    let extensions = window.vulkan_instance_extensions().unwrap();
-    println!("Vulkan extensions required by SDL2: {:?}", extensions);
-
     let vk_instance = create_vulkan_instance(vk_lib.clone());
 
-    let vk_surface = window
-        .vulkan_create_surface(vk_instance.handle().as_raw() as _)
-        .unwrap();
+    let window = VwWindow::from(VwWindowCreateInfo {
+        title: "VkWizard Window",
+        width: 1280,
+        height: 720,
+        fullscreen: false,
+    });
+    let vk_surface = window.create_vk_surface(vk_instance.handle().as_raw() as _);
 
     loop {
-        for event in sdl.event_pump().unwrap().poll_iter() {
+        for event in window.event_pump().poll_iter() {
             match event {
                 Event::Quit { .. } => return,
                 Event::KeyDown {
@@ -49,6 +49,11 @@ fn create_vulkan_instance(vk_lib: Arc<VulkanLibrary>) -> Arc<Instance> {
         if let (ext, true) = ext {
             println!("\t{}", ext);
         }
+    }
+
+    println!("Supported layers:");
+    for layer in vk_lib.layer_properties().unwrap().into_iter() {
+        println!("\t{}, {}", layer.name(), layer.implementation_version());
     }
 
     let enabled_extensions = InstanceExtensions {
@@ -72,7 +77,7 @@ fn create_vulkan_instance(vk_lib: Arc<VulkanLibrary>) -> Arc<Instance> {
             patch: 0,
         },
         max_api_version: Some(Version::V1_0),
-        enabled_layers: vec![],
+        enabled_layers: vec!["VK_LAYER_KHRONOS_validation".into()],
         enabled_extensions,
         debug_utils_messengers: vec![],
         enabled_validation_features: vec![],
@@ -81,6 +86,8 @@ fn create_vulkan_instance(vk_lib: Arc<VulkanLibrary>) -> Arc<Instance> {
         ..Default::default()
     };
 
+    println!("Creating Vulkan instance and initializing validation layers...");
+    println!("Please wait.");
     let vk_instance = Instance::new(vk_lib, instance_create_info).unwrap();
 
     vk_instance
