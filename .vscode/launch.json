@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "name": "Run (Debug)",
+      "preLaunchTask": "build: debug",
+      "program": "${workspaceFolder}/target/debug/vkwizard.exe",
+      "request": "launch",
+      "type": "lldb",
+    },
+    {
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "name": "Run (Release)",
+      "preLaunchTask": "build: release",
+      "program": "${workspaceFolder}/target/release/vkwizard.exe",
+      "request": "launch",
+      "type": "lldb",
+    },
+  ]
+}
