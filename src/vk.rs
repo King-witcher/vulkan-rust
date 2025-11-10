@@ -4,6 +4,7 @@ pub use vulkano::device::Device;
 pub use vulkano::device::DeviceCreateInfo;
 pub use vulkano::device::DeviceExtensions;
 pub use vulkano::device::DeviceFeatures;
+pub use vulkano::device::Queue;
 pub use vulkano::device::QueueCreateInfo;
 pub use vulkano::device::QueueFlags;
 pub use vulkano::device::physical::PhysicalDevice;

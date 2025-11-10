@@ -2,7 +2,7 @@ use std::{sync::Arc, vec};
 
 use anyhow::bail;
 use sdl::{event::Event, keyboard::Scancode};
-use vulkano::device::{Device, DeviceFeatures};
+use vulkano::device::{Device, DeviceFeatures, QueueCreateFlags, QueueFlags};
 
 use crate::{
     vk,
@@ -14,6 +14,8 @@ pub struct VkWizardEngine {
     vk_instance: Arc<vk::Instance>,
     vk_physical_device: Arc<vk::PhysicalDevice>,
     vk_logical_device: Arc<vk::Device>,
+    vk_queues: Vec<Arc<vk::Queue>>,
+
     vw_window: VwWindow,
 }
 
@@ -22,7 +24,11 @@ impl VkWizardEngine {
         let vk_library = vk::VulkanLibrary::new()?;
         let vk_instance = create_vulkan_instance(vk_library.clone())?;
         let vk_physical_device = pick_physical_device(vk_instance.clone())?;
-        let vk_logical_device = create_logical_device(vk_physical_device.clone())?;
+        let (vk_logical_device, vk_queues) = create_logical_device(vk_physical_device.clone())?;
+        let graphics_queue_index =
+            find_queue_family_index(&vk_physical_device, QueueFlags::GRAPHICS);
+
+        println!("Queues: {:#?}", vk_queues);
 
         let vw_window = VwWindow::new(VwWindowCreateInfo {
             title: "VkWizard Window",
@@ -35,6 +41,8 @@ impl VkWizardEngine {
             vk_instance,
             vk_physical_device,
             vk_logical_device,
+            vk_queues,
+
             vw_window,
         })
     }
@@ -188,21 +196,24 @@ fn is_device_suitable(device: &Arc<vk::PhysicalDevice>) -> bool {
     true
 }
 
+fn find_queue_family_index(
+    physical_device: &Arc<vk::PhysicalDevice>,
+    required_flags: vk::QueueFlags,
+) -> anyhow::Result<u32> {
+    let queue_family_properties = physical_device.queue_family_properties();
+    for (index, qfp) in queue_family_properties.iter().enumerate() {
+        if qfp.queue_flags.intersects(required_flags) {
+            return Ok(index as u32);
+        }
+    }
+    bail!("No suitable queue family found");
+}
+
 fn create_logical_device(
     physical_device: Arc<vk::PhysicalDevice>,
-) -> anyhow::Result<Arc<vk::Device>> {
-    let queue_family_properties = physical_device.queue_family_properties();
-    let graphics_queue_family_index = queue_family_properties
-        .iter()
-        .enumerate()
-        .find_map(|(index, qfp)| {
-            if qfp.queue_flags.intersects(vk::QueueFlags::GRAPHICS) {
-                Some(index as u32)
-            } else {
-                None
-            }
-        })
-        .ok_or_else(|| anyhow::anyhow!("No suitable graphics queue family found"))?;
+) -> anyhow::Result<(Arc<vk::Device>, Vec<Arc<vk::Queue>>)> {
+    let graphics_queue_family_index =
+        find_queue_family_index(&physical_device, vk::QueueFlags::GRAPHICS)?;
 
     let device_queue_create_info = vk::QueueCreateInfo {
         queue_family_index: graphics_queue_family_index,
@@ -223,6 +234,7 @@ fn create_logical_device(
         ..Default::default()
     };
 
-    let (device, _) = vk::Device::new(physical_device, device_create_info)?;
-    Ok(device)
+    let (device, queues) = vk::Device::new(physical_device, device_create_info)?;
+    let queues = queues.collect();
+    Ok((device, queues))
 }
