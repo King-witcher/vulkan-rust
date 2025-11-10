@@ -14,6 +14,4 @@ fn main() -> anyhow::Result<()> {
     engine.run();
 
     return Ok(());
-
-    // let vk_surface = window.create_vk_surface(device.vk_instance().handle().as_raw() as _);
 }
