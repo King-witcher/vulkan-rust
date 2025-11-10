@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
+ash = "0.38.0"
 sdl2 = "0.38.0"
 thiserror = "2.0.17"
 vulkano = "0.35.2"

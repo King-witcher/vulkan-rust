@@ -1,8 +1,14 @@
-use std::os::raw::c_void;
+use std::{os::raw::c_void, sync::Arc};
+
+use ash::vk::SurfaceKHR;
+use sdl::sys::VkSurfaceKHR;
+use vulkano::{Handle, VulkanObject, swapchain::SurfaceApi};
+
+use crate::vk;
 
 pub struct VwWindow {
     sdl_context: sdl2::Sdl,
-    sdl_video: sdl2::VideoSubsystem,
+    // sdl_video: sdl2::VideoSubsystem,
     sdl_window: sdl2::video::Window,
 }
 
@@ -42,15 +48,23 @@ impl VwWindow {
 
         VwWindow {
             sdl_context,
-            sdl_video,
+            // sdl_video,
             sdl_window,
         }
     }
 
-    pub fn create_vk_surface(&self, instance: *const c_void) -> *const c_void {
-        self.sdl_window
-            .vulkan_create_surface(instance as _)
-            .expect("Failed to create Vulkan surface") as *const c_void
+    pub fn present(&self) {
+        self.sdl_window.gl_swap_window();
+    }
+
+    pub fn create_vk_surface(&self, instance: Arc<vk::Instance>) -> vk::Surface {
+        let vk_surface = self
+            .sdl_window
+            .vulkan_create_surface(instance.handle().as_raw() as _)
+            .expect("Failed to create Vulkan surface");
+
+        let surface = SurfaceKHR::from_raw(vk_surface);
+        unsafe { vk::Surface::from_handle(instance, surface, SurfaceApi::Win32, None) }
     }
 
     pub fn event_pump(&self) -> sdl2::EventPump {

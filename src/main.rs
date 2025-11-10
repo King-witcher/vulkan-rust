@@ -1,3 +1,4 @@
+extern crate ash;
 extern crate sdl2 as sdl;
 extern crate vulkano;
 

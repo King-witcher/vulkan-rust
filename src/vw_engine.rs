@@ -1,8 +1,8 @@
-use std::{sync::Arc, vec};
+use std::{os::raw::c_void, sync::Arc, vec};
 
 use anyhow::bail;
 use sdl::{event::Event, keyboard::Scancode};
-use vulkano::device::{Device, DeviceFeatures, QueueCreateFlags, QueueFlags};
+use vulkano::device::QueueCreateFlags;
 
 use crate::{
     vk,
@@ -14,7 +14,8 @@ pub struct VkWizardEngine {
     vk_instance: Arc<vk::Instance>,
     vk_physical_device: Arc<vk::PhysicalDevice>,
     vk_logical_device: Arc<vk::Device>,
-    vk_queues: Vec<Arc<vk::Queue>>,
+    vk_graphics_queue: Arc<vk::Queue>,
+    vk_present_queue: Arc<vk::Queue>,
 
     vw_window: VwWindow,
 }
@@ -23,12 +24,6 @@ impl VkWizardEngine {
     pub fn new() -> anyhow::Result<Self> {
         let vk_library = vk::VulkanLibrary::new()?;
         let vk_instance = create_vulkan_instance(vk_library.clone())?;
-        let vk_physical_device = pick_physical_device(vk_instance.clone())?;
-        let (vk_logical_device, vk_queues) = create_logical_device(vk_physical_device.clone())?;
-        let graphics_queue_index =
-            find_queue_family_index(&vk_physical_device, QueueFlags::GRAPHICS);
-
-        println!("Queues: {:#?}", vk_queues);
 
         let vw_window = VwWindow::new(VwWindowCreateInfo {
             title: "VkWizard Window",
@@ -36,12 +31,19 @@ impl VkWizardEngine {
             ..Default::default()
         });
 
+        let surface = vw_window.create_vk_surface(vk_instance.clone());
+
+        let vk_physical_device = pick_physical_device(vk_instance.clone())?;
+        let (vk_logical_device, vk_graphics_queue, vk_present_queue) =
+            create_logical_device(vk_physical_device.clone(), surface)?;
+
         Ok(VkWizardEngine {
             vk_library,
             vk_instance,
             vk_physical_device,
             vk_logical_device,
-            vk_queues,
+            vk_graphics_queue,
+            vk_present_queue,
 
             vw_window,
         })
@@ -60,6 +62,7 @@ impl VkWizardEngine {
                     _ => {}
                 }
             }
+            self.vw_window.present();
         }
     }
 }
@@ -115,7 +118,7 @@ fn create_vulkan_instance(vk_lib: Arc<vk::VulkanLibrary>) -> anyhow::Result<Arc<
     };
 
     if cfg!(debug_assertions) {
-        println!("Creating Vulkan instance, please wait...");
+        println!("Attaching validation layers, please wait...");
     }
     let vk_instance = vk::Instance::new(vk_lib, instance_create_info).unwrap();
 
@@ -211,12 +214,34 @@ fn find_queue_family_index(
 
 fn create_logical_device(
     physical_device: Arc<vk::PhysicalDevice>,
-) -> anyhow::Result<(Arc<vk::Device>, Vec<Arc<vk::Queue>>)> {
-    let graphics_queue_family_index =
-        find_queue_family_index(&physical_device, vk::QueueFlags::GRAPHICS)?;
+    surface: vk::Surface,
+) -> anyhow::Result<(Arc<vk::Device>, Arc<vk::Queue>, Arc<vk::Queue>)> {
+    let queue_family_properties = physical_device.queue_family_properties();
+
+    let graphics_index = queue_family_properties
+        .iter()
+        .position(|qfp| qfp.queue_flags.intersects(vk::QueueFlags::GRAPHICS))
+        .expect("Couldn't find queue family that supports graphics")
+        as u32;
+
+    let present_index = queue_family_properties
+        .iter()
+        .enumerate()
+        .find_map(|(index, _)| {
+            if physical_device
+                .surface_support(index as u32, &surface)
+                .unwrap()
+            {
+                Some(index as u32)
+            } else {
+                None
+            }
+        })
+        .expect("Couldn't find queue family that supports presentation")
+        as u32;
 
     let device_queue_create_info = vk::QueueCreateInfo {
-        queue_family_index: graphics_queue_family_index,
+        queue_family_index: graphics_index,
         queues: vec![1.0], // Queue priorities
         ..Default::default()
     };
@@ -234,7 +259,27 @@ fn create_logical_device(
         ..Default::default()
     };
 
-    let (device, queues) = vk::Device::new(physical_device, device_create_info)?;
-    let queues = queues.collect();
-    Ok((device, queues))
+    let (device, mut queues) = vk::Device::new(physical_device, device_create_info)?;
+
+    let graphics_queue = queues
+        .find_map(|q| {
+            if q.queue_family_index() == graphics_index {
+                Some(q.clone())
+            } else {
+                None
+            }
+        })
+        .expect("Failed to find graphics queue");
+
+    let present_queue = queues
+        .find_map(|q| {
+            if q.queue_family_index() == present_index {
+                Some(q.clone())
+            } else {
+                None
+            }
+        })
+        .expect("Failed to find present queue");
+
+    Ok((device, graphics_queue, present_queue))
 }

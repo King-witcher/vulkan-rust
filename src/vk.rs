@@ -13,3 +13,4 @@ pub use vulkano::instance::Instance;
 pub use vulkano::instance::InstanceCreateFlags;
 pub use vulkano::instance::InstanceCreateInfo;
 pub use vulkano::instance::InstanceExtensions;
+pub use vulkano::swapchain::Surface;

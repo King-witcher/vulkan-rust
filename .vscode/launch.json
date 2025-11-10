@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "console": "integratedTerminal",
+      "console": "externalTerminal",
       "cwd": "${workspaceFolder}",
       "name": "Run (Debug)",
       "preLaunchTask": "build: debug",
@@ -11,7 +11,7 @@
       "type": "lldb",
     },
     {
-      "console": "integratedTerminal",
+      "console": "externalTerminal",
       "cwd": "${workspaceFolder}",
       "name": "Run (Release)",
       "preLaunchTask": "build: release",
