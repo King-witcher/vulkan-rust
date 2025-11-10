@@ -1,7 +1,10 @@
 pub use vulkano::Version;
 pub use vulkano::VulkanLibrary;
+pub use vulkano::device::Device;
+pub use vulkano::device::DeviceCreateInfo;
 pub use vulkano::device::DeviceExtensions;
-pub use vulkano::device::QueueFamilyProperties;
+pub use vulkano::device::DeviceFeatures;
+pub use vulkano::device::QueueCreateInfo;
 pub use vulkano::device::QueueFlags;
 pub use vulkano::device::physical::PhysicalDevice;
 pub use vulkano::device::physical::PhysicalDeviceType;
