@@ -259,9 +259,11 @@ fn create_logical_device(
         ..Default::default()
     };
 
-    let (device, mut queues) = vk::Device::new(physical_device, device_create_info)?;
+    let (device, queues) = vk::Device::new(physical_device, device_create_info)?;
+    let queues = queues.collect::<Vec<_>>();
 
     let graphics_queue = queues
+        .iter()
         .find_map(|q| {
             if q.queue_family_index() == graphics_index {
                 Some(q.clone())
@@ -272,6 +274,7 @@ fn create_logical_device(
         .expect("Failed to find graphics queue");
 
     let present_queue = queues
+        .iter()
         .find_map(|q| {
             if q.queue_family_index() == present_index {
                 Some(q.clone())
