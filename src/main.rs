@@ -1,5 +1,6 @@
 extern crate ash;
 extern crate sdl2 as sdl;
+extern crate smallvec;
 extern crate vulkano;
 
 mod vk;

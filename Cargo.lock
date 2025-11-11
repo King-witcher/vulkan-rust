@@ -9,6 +9,7 @@ dependencies = [
  "anyhow",
  "ash",
  "sdl2",
+ "smallvec",
  "thiserror",
  "vulkano",
 ]

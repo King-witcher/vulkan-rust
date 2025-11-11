@@ -1,28 +1,72 @@
-use crate::{vk, vw_window::VwWindow};
+use crate::vk;
 use anyhow::bail;
 use std::sync::Arc;
 
 pub struct VwDevice {
     vk_instance: Arc<vk::Instance>,
     vk_physical_device: Arc<vk::PhysicalDevice>,
+    vk_surface: Arc<vk::Surface>,
     vk_logical_device: Arc<vk::Device>,
     vk_graphics_queue: Arc<vk::Queue>,
     vk_present_queue: Arc<vk::Queue>,
 }
 
+pub struct VwSwapChainSupportDetails {
+    pub surface_capabilities: vk::SurfaceCapabilities,
+    pub surface_formats: Vec<(vk::Format, vk::ColorSpace)>,
+    pub present_modes: Vec<vk::PresentMode>,
+}
+
 impl VwDevice {
-    pub fn new(vk_instance: Arc<vk::Instance>, surface: vk::Surface) -> anyhow::Result<Self> {
+    pub fn new(vk_instance: Arc<vk::Instance>, surface: Arc<vk::Surface>) -> anyhow::Result<Self> {
         let vk_physical_device = pick_physical_device(vk_instance.clone())?;
         let (vk_logical_device, vk_graphics_queue, vk_present_queue) =
-            create_logical_device(vk_physical_device.clone(), surface)?;
+            create_logical_device(vk_physical_device.clone(), &surface)?;
 
         Ok(VwDevice {
             vk_instance,
             vk_physical_device,
+            vk_surface: surface,
             vk_logical_device,
             vk_graphics_queue,
             vk_present_queue,
         })
+    }
+
+    pub fn swap_chain_support(&self) -> anyhow::Result<VwSwapChainSupportDetails> {
+        let surface_capabilities = self
+            .vk_physical_device
+            .surface_capabilities(&self.vk_surface, Default::default())?;
+
+        let surface_formats = self
+            .vk_physical_device
+            .surface_formats(&self.vk_surface, Default::default())?;
+
+        let present_modes = self
+            .vk_physical_device
+            .surface_present_modes(&self.vk_surface, Default::default())?;
+
+        Ok(VwSwapChainSupportDetails {
+            surface_capabilities,
+            surface_formats,
+            present_modes,
+        })
+    }
+
+    pub fn logical_device(&self) -> Arc<vk::Device> {
+        self.vk_logical_device.clone()
+    }
+
+    pub fn surface(&self) -> Arc<vk::Surface> {
+        self.vk_surface.clone()
+    }
+
+    pub fn graphics_queue(&self) -> Arc<vk::Queue> {
+        self.vk_graphics_queue.clone()
+    }
+
+    pub fn present_queue(&self) -> Arc<vk::Queue> {
+        self.vk_present_queue.clone()
     }
 }
 
@@ -106,7 +150,7 @@ fn find_queue_family_index(
 
 fn create_logical_device(
     physical_device: Arc<vk::PhysicalDevice>,
-    surface: vk::Surface,
+    surface: &vk::Surface,
 ) -> anyhow::Result<(Arc<vk::Device>, Arc<vk::Queue>, Arc<vk::Queue>)> {
     let queue_family_properties = physical_device.queue_family_properties();
 
@@ -121,7 +165,7 @@ fn create_logical_device(
         .enumerate()
         .find_map(|(index, _)| {
             if physical_device
-                .surface_support(index as u32, &surface)
+                .surface_support(index as u32, surface)
                 .unwrap()
             {
                 Some(index as u32)

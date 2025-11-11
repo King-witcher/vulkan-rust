@@ -57,14 +57,21 @@ impl VwWindow {
         self.sdl_window.gl_swap_window();
     }
 
-    pub fn create_vk_surface(&self, instance: Arc<vk::Instance>) -> vk::Surface {
+    pub fn create_vk_surface(&self, instance: Arc<vk::Instance>) -> Arc<vk::Surface> {
         let vk_surface = self
             .sdl_window
             .vulkan_create_surface(instance.handle().as_raw() as _)
             .expect("Failed to create Vulkan surface");
 
         let surface = SurfaceKHR::from_raw(vk_surface);
-        unsafe { vk::Surface::from_handle(instance, surface, SurfaceApi::Win32, None) }
+        unsafe {
+            Arc::new(vk::Surface::from_handle(
+                instance,
+                surface,
+                SurfaceApi::Win32,
+                None,
+            ))
+        }
     }
 
     pub fn event_pump(&self) -> sdl2::EventPump {

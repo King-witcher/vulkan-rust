@@ -4,17 +4,19 @@ use sdl::{event::Event, keyboard::Scancode};
 
 use crate::{
     vk,
-    vw_engine::vw_device::VwDevice,
+    vw_engine::{vw_device::VwDevice, vw_swapchain::VwSwapchain},
     vw_window::{VwWindow, VwWindowCreateInfo},
 };
 
 mod vw_device;
+mod vw_swapchain;
 
 pub struct VkWizardEngine {
     vk_library: Arc<vk::VulkanLibrary>,
     vk_instance: Arc<vk::Instance>,
-    vw_device: VwDevice,
 
+    vw_device: VwDevice,
+    vw_swapchain: VwSwapchain,
     vw_window: VwWindow,
 }
 
@@ -32,11 +34,13 @@ impl VkWizardEngine {
         let surface = vw_window.create_vk_surface(vk_instance.clone());
 
         let vw_device = VwDevice::new(vk_instance.clone(), surface)?;
+        let vw_swapchain = VwSwapchain::new(&vw_device)?;
 
         Ok(VkWizardEngine {
             vk_library,
             vk_instance,
             vw_device,
+            vw_swapchain,
 
             vw_window,
         })
