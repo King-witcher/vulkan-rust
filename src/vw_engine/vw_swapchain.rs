@@ -1,7 +1,15 @@
 use std::sync::Arc;
 
 use smallvec::SmallVec;
-use vulkano::{swapchain::SwapchainCreateFlags, sync::Sharing};
+use vulkano::{
+    image::{
+        ImageAspects, ImageSubresourceRange,
+        sampler::{ComponentMapping, ComponentSwizzle},
+        view::{ImageView, ImageViewCreateInfo, ImageViewType},
+    },
+    swapchain::SwapchainCreateFlags,
+    sync::Sharing,
+};
 
 use crate::{vk, vw_engine::vw_device::VwDevice};
 
@@ -10,6 +18,7 @@ pub struct VwSwapchain {
     images: Vec<Arc<vk::Image>>,
     surface_format: vk::Format,
     extent: vk::Extent2D,
+    image_views: Vec<Arc<vk::ImageView>>,
 }
 
 impl VwSwapchain {
@@ -59,10 +68,13 @@ impl VwSwapchain {
             create_info,
         )?;
 
+        let image_views = create_image_views(surface_format, images.clone());
+
         Ok(VwSwapchain {
             swapchain,
             images,
             surface_format,
+            image_views,
             extent,
         })
     }
@@ -102,4 +114,32 @@ fn choose_extent(capabilities: &vk::SurfaceCapabilities, width: u32, height: u32
 
         actual_extent
     }
+}
+
+fn create_image_views(
+    surface_format: vk::Format,
+    images: Vec<Arc<vk::Image>>,
+) -> Vec<Arc<ImageView>> {
+    images
+        .iter()
+        .map(|image| {
+            let create_info = ImageViewCreateInfo {
+                format: surface_format,
+                view_type: ImageViewType::Dim2d,
+                component_mapping: ComponentMapping {
+                    r: ComponentSwizzle::Identity,
+                    g: ComponentSwizzle::Identity,
+                    b: ComponentSwizzle::Identity,
+                    a: ComponentSwizzle::Identity,
+                },
+                subresource_range: ImageSubresourceRange {
+                    aspects: ImageAspects::COLOR,
+                    array_layers: 0..1, // ??
+                    mip_levels: 0..1,
+                },
+                ..Default::default()
+            };
+            ImageView::new(image.clone(), create_info).expect("Failed to create image view")
+        })
+        .collect::<Vec<_>>()
 }
