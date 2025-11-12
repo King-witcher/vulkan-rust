@@ -8,6 +8,8 @@ use crate::{vk, vw_engine::vw_device::VwDevice};
 pub struct VwSwapchain {
     swapchain: Arc<vk::Swapchain>,
     images: Vec<Arc<vk::Image>>,
+    surface_format: vk::Format,
+    extent: vk::Extent2D,
 }
 
 impl VwSwapchain {
@@ -57,7 +59,12 @@ impl VwSwapchain {
             create_info,
         )?;
 
-        Ok(VwSwapchain { swapchain, images })
+        Ok(VwSwapchain {
+            swapchain,
+            images,
+            surface_format,
+            extent,
+        })
     }
 }
 
