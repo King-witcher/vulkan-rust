@@ -8,11 +8,12 @@ mod vw_engine;
 mod vw_window;
 
 fn main() -> anyhow::Result<()> {
-    let engine = vw_engine::VkWizardEngine::new()?;
     if cfg!(debug_assertions) {
         println!("Running in debug mode.");
     }
+
+    let engine = vw_engine::VkWizardEngine::new()?;
     engine.run();
 
-    return Ok(());
+    Ok(())
 }
