@@ -4,11 +4,12 @@ use sdl::{event::Event, keyboard::Scancode};
 
 use crate::{
     vk,
-    vw_engine::{vw_device::VwDevice, vw_swapchain::VwSwapchain},
+    vw_engine::{vw_device::VwDevice, vw_pipeline::VwPipeline, vw_swapchain::VwSwapchain},
     vw_window::{VwWindow, VwWindowCreateInfo},
 };
 
 mod vw_device;
+mod vw_pipeline;
 mod vw_swapchain;
 
 pub struct VkWizardEngine {
@@ -17,6 +18,7 @@ pub struct VkWizardEngine {
 
     vw_device: VwDevice,
     vw_swapchain: VwSwapchain,
+    vw_pipeline: VwPipeline,
     vw_window: VwWindow,
 }
 
@@ -36,12 +38,16 @@ impl VkWizardEngine {
         let vw_device = VwDevice::new(vk_instance.clone(), surface)?;
         let vw_swapchain = VwSwapchain::new(&vw_device)?;
 
+        let shader_code = include_bytes!("../shaders/shader.slang.spv");
+        let vw_pipeline = VwPipeline::new(&vw_device, shader_code)?;
+
         Ok(VkWizardEngine {
             vk_library,
             vk_instance,
+
             vw_device,
             vw_swapchain,
-
+            vw_pipeline,
             vw_window,
         })
     }

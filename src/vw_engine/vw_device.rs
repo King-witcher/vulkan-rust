@@ -2,6 +2,7 @@ use crate::vk;
 use anyhow::bail;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct VwDevice {
     vk_physical_device: Arc<vk::PhysicalDevice>,
     vk_surface: Arc<vk::Surface>,
@@ -85,6 +86,7 @@ const REQUIRED_DEVICE_EXTENSIONS: vk::DeviceExtensions = vk::DeviceExtensions {
 const REQUIRED_FEATURES: vk::DeviceFeatures = vk::DeviceFeatures {
     geometry_shader: true,
     dynamic_rendering: true,
+    shader_draw_parameters: true,
     extended_dynamic_state: true,
     ..vk::DeviceFeatures::empty()
 };

@@ -16,7 +16,7 @@
         "kind": "build",
         "isDefault": false
       },
-      "problemMatcher": ["$rustc"]
+      "problemMatcher": ["$rustc"],
     },
 
     {
@@ -38,25 +38,31 @@
     },
 
     {
-      "label": "glslc: compile",
-      "detail": "Compile all GLSL shaders",
+      "label": "slangc: compile",
+      "detail": "Compile all Slang shaders",
       "icon": {
         "color": "terminal.ansiMagenta",
         "id": "paintcan"
       },
       "type": "shell",
       "group": "build",
-      "command": "./compile_shaders.sh",
+      "command": "./compile-shaders.sh",
       "problemMatcher": {
-        "owner": "glslc",
+        "owner": "slangc",
         "fileLocation": ["relative", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "(.+\\.(frag|vert)):(\\d+): (error|warning): (.+)",
-          "file": 1,
-          "line": 3,
-          "severity": 4,
-          "message": 5,
-        }
+        "pattern": [
+          {
+            "regexp": "(.+\\.slang)\\((\\d+)\\): ((\\w+) .+)",
+            "file": 1,
+            "line": 2,
+            "severity": 4,
+            "message": 3,
+          },
+          {
+            "regexp": "(.+)",
+            "code": 1,
+          }
+        ]
       },
     },
 
@@ -69,7 +75,7 @@
       "group": "build",
       "dependsOrder": "parallel",
       "dependsOn": [
-        // "glslc: compile",
+        "slangc: compile",
         "cargo build: debug"
       ],
     },
@@ -81,9 +87,9 @@
         "id": "rocket"
       },
       "group": "build",
-      "dependsOrder": "parallel",
+      "dependsOrder": "sequence",
       "dependsOn": [
-        // "glslc: compile",
+        "slangc: compile",
         "cargo build: release",
       ],
     },
