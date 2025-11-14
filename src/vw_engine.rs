@@ -38,7 +38,7 @@ impl VkWizardEngine {
         let vw_device = VwDevice::new(vk_instance.clone(), surface)?;
         let vw_swapchain = VwSwapchain::new(&vw_device)?;
 
-        let shader_code = include_bytes!("../shaders/shader.slang.spv");
+        let shader_code = include_bytes!("../shaders/shader.spv");
         let vw_pipeline = VwPipeline::new(&vw_device, shader_code)?;
 
         Ok(VkWizardEngine {

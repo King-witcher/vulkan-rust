@@ -46,7 +46,7 @@
       },
       "type": "shell",
       "group": "build",
-      "command": "./compile-shaders.sh",
+      "command": "./slangc.sh",
       "problemMatcher": {
         "owner": "slangc",
         "fileLocation": ["relative", "${workspaceFolder}"],
