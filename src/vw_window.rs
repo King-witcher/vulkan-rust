@@ -2,7 +2,6 @@ use std::{os::raw::c_void, sync::Arc};
 
 use ash::vk::SurfaceKHR;
 use sdl::sys::VkSurfaceKHR;
-use vulkano::{Handle, VulkanObject, swapchain::SurfaceApi};
 
 use crate::vk;
 
