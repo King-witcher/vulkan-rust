@@ -3,20 +3,24 @@
   "configurations": [
     {
       "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}",
       "name": "Run (Debug)",
-      "preLaunchTask": "build: debug",
-      "program": "${workspaceFolder}/target/debug/vkwizard.exe",
       "request": "launch",
+      "preLaunchTask": "slangc: compile",
+      "cargo": {
+        "cwd": "${workspaceFolder}",
+        "args": ["run"]
+      },
       "type": "lldb",
     },
     {
       "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}",
       "name": "Run (Release)",
-      "preLaunchTask": "build: release",
-      "program": "${workspaceFolder}/target/release/vkwizard.exe",
       "request": "launch",
+      "preLaunchTask": "slangc: compile",
+      "cargo": {
+        "cwd": "${workspaceFolder}",
+        "args": ["run", "--release"]
+      },
       "type": "lldb",
     },
   ]

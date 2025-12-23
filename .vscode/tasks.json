@@ -2,42 +2,6 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "cargo build: debug",
-      "type": "shell",
-      "command": "cargo",
-      "args": [
-        "build",
-      ],
-      "icon": {
-        "color": "terminal.ansiGreen",
-        "id": "debug"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": false
-      },
-      "problemMatcher": ["$rustc"],
-    },
-
-    {
-      "label": "cargo build: release",
-      "type": "cargo",
-      "command": "build",
-      "args": [
-        "--release"
-      ],
-      "icon": {
-        "color": "terminal.ansiGreen",
-        "id": "rocket"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": ["$rustc"],
-    },
-
-    {
       "label": "slangc: compile",
       "detail": "Compile all Slang shaders",
       "icon": {
@@ -64,34 +28,6 @@
           }
         ]
       },
-    },
-
-    {
-      "label": "build: debug",
-      "icon": {
-        "color": "terminal.ansiGreen",
-        "id": "debug"
-      },
-      "group": "build",
-      "dependsOrder": "parallel",
-      "dependsOn": [
-        "slangc: compile",
-        "cargo build: debug"
-      ],
-    },
-
-    {
-      "label": "build: release",
-      "icon": {
-        "color": "terminal.ansiGreen",
-        "id": "rocket"
-      },
-      "group": "build",
-      "dependsOrder": "sequence",
-      "dependsOn": [
-        "slangc: compile",
-        "cargo build: release",
-      ],
     },
   ]
 }

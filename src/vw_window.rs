@@ -1,9 +1,10 @@
-use std::{os::raw::c_void, sync::Arc};
+use std::sync::Arc;
 
-use ash::vk::SurfaceKHR;
-use sdl::sys::VkSurfaceKHR;
-
-use crate::vk;
+use vulkano::{
+    Handle, VulkanObject,
+    instance::Instance,
+    swapchain::{Surface, SurfaceApi},
+};
 
 pub struct VwWindow {
     sdl_context: sdl2::Sdl,
@@ -56,21 +57,17 @@ impl VwWindow {
         self.sdl_window.gl_swap_window();
     }
 
-    pub fn create_vk_surface(&self, instance: Arc<vk::Instance>) -> Arc<vk::Surface> {
-        let vk_surface = self
+    pub fn create_vk_surface(&self, instance: Arc<Instance>) -> Arc<Surface> {
+        let handle = self
             .sdl_window
             .vulkan_create_surface(instance.handle().as_raw() as _)
             .expect("Failed to create Vulkan surface");
 
-        let surface = SurfaceKHR::from_raw(vk_surface);
-        unsafe {
-            Arc::new(vk::Surface::from_handle(
-                instance,
-                surface,
-                SurfaceApi::Win32,
-                None,
-            ))
-        }
+        let surface_khr = ash::vk::SurfaceKHR::from_raw(handle);
+
+        let surface =
+            unsafe { Surface::from_handle(instance, surface_khr, SurfaceApi::Win32, None) };
+        Arc::new(surface)
     }
 
     pub fn event_pump(&self) -> sdl2::EventPump {

@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
 use smallvec::SmallVec;
+use vulkano::format::Format;
+use vulkano::image::Image;
+use vulkano::swapchain::{
+    ColorSpace, PresentMode, SurfaceCapabilities, SurfaceTransform, Swapchain, SwapchainCreateInfo,
+};
 use vulkano::{
     image::{
         ImageAspects, ImageSubresourceRange,
@@ -11,14 +16,14 @@ use vulkano::{
     sync::Sharing,
 };
 
-use crate::{vk, vw_engine::vw_device::VwDevice};
+use crate::vw_engine::vw_device::VwDevice;
 
 pub struct VwSwapchain {
-    swapchain: Arc<vk::Swapchain>,
-    images: Vec<Arc<vk::Image>>,
-    surface_format: vk::Format,
-    extent: vk::Extent2D,
-    image_views: Vec<Arc<vk::ImageView>>,
+    swapchain: Arc<Swapchain>,
+    images: Vec<Arc<Image>>,
+    surface_format: Format,
+    extent: [u32; 2],
+    image_views: Vec<Arc<ImageView>>,
 }
 
 impl VwSwapchain {
@@ -37,16 +42,16 @@ impl VwSwapchain {
                 .unwrap_or(u32::MAX),
         );
 
-        let mut create_info: vk::SwapchainCreateInfo = vk::SwapchainCreateInfo {
+        let mut create_info: SwapchainCreateInfo = SwapchainCreateInfo {
             flags: SwapchainCreateFlags::empty(),
             min_image_count: swapchain_support.surface_capabilities.min_image_count,
             image_format: surface_format,
             image_color_space: color_space,
-            image_extent: [extent.width, extent.height],
+            image_extent: extent,
             image_array_layers: 1,
             image_usage: vulkano::image::ImageUsage::COLOR_ATTACHMENT,
             image_sharing: Sharing::Exclusive,
-            pre_transform: vk::SurfaceTransform::Identity, // No transformation
+            pre_transform: SurfaceTransform::Identity, // No transformation
             // pre_transform: swapchain_support.surface_capabilities.current_transform, // No transformation
             composite_alpha: vulkano::swapchain::CompositeAlpha::Opaque, // Window is opaque
             present_mode,
@@ -80,46 +85,41 @@ impl VwSwapchain {
     }
 }
 
-fn choose_surface_format(
-    available_formats: &[(vk::Format, vk::ColorSpace)],
-) -> (vk::Format, vk::ColorSpace) {
+fn choose_surface_format(available_formats: &[(Format, ColorSpace)]) -> (Format, ColorSpace) {
     for (format, color_space) in available_formats.iter() {
-        if *format == vk::Format::B8G8R8A8_SRGB && *color_space == vk::ColorSpace::SrgbNonLinear {
+        if *format == Format::B8G8R8A8_SRGB && *color_space == ColorSpace::SrgbNonLinear {
             return (*format, *color_space);
         }
     }
     available_formats[0]
 }
 
-fn choose_present_mode(present_modes: &[vk::PresentMode]) -> vk::PresentMode {
+fn choose_present_mode(present_modes: &[PresentMode]) -> PresentMode {
     for present_mode in present_modes.iter() {
-        if *present_mode == vk::PresentMode::Mailbox {
+        if *present_mode == PresentMode::Mailbox {
             return *present_mode;
         }
     }
-    vk::PresentMode::Fifo
+    PresentMode::Fifo
 }
 
-fn choose_extent(capabilities: &vk::SurfaceCapabilities, width: u32, height: u32) -> vk::Extent2D {
+fn choose_extent(capabilities: &SurfaceCapabilities, width: u32, height: u32) -> [u32; 2] {
     if let Some([width, height]) = capabilities.current_extent {
-        vk::Extent2D { width, height }
+        [width, height]
     } else {
         let [min_width, min_height] = capabilities.min_image_extent;
         let [max_width, max_height] = capabilities.max_image_extent;
 
-        let actual_extent = vk::Extent2D {
-            width: width.clamp(min_width, max_width),
-            height: height.clamp(min_height, max_height),
-        };
+        let actual_extent = [
+            width.clamp(min_width, max_width),
+            height.clamp(min_height, max_height),
+        ];
 
         actual_extent
     }
 }
 
-fn create_image_views(
-    surface_format: vk::Format,
-    images: Vec<Arc<vk::Image>>,
-) -> Vec<Arc<ImageView>> {
+fn create_image_views(surface_format: Format, images: Vec<Arc<Image>>) -> Vec<Arc<ImageView>> {
     images
         .iter()
         .map(|image| {

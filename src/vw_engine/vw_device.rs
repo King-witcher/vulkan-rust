@@ -1,24 +1,34 @@
-use crate::vk;
 use anyhow::bail;
 use std::sync::Arc;
+use vulkano::{
+    Version,
+    device::{
+        Device, DeviceCreateInfo, DeviceExtensions, DeviceFeatures, Queue, QueueCreateInfo,
+        QueueFlags,
+        physical::{PhysicalDevice, PhysicalDeviceType},
+    },
+    format::Format,
+    instance::Instance,
+    swapchain::{ColorSpace, PresentMode, Surface, SurfaceCapabilities},
+};
 
 #[derive(Clone)]
 pub struct VwDevice {
-    vk_physical_device: Arc<vk::PhysicalDevice>,
-    vk_surface: Arc<vk::Surface>,
-    vk_logical_device: Arc<vk::Device>,
-    vk_graphics_queue: Arc<vk::Queue>,
-    vk_present_queue: Arc<vk::Queue>,
+    vk_physical_device: Arc<PhysicalDevice>,
+    vk_surface: Arc<Surface>,
+    vk_logical_device: Arc<Device>,
+    vk_graphics_queue: Arc<Queue>,
+    vk_present_queue: Arc<Queue>,
 }
 
 pub struct VwSwapChainSupportDetails {
-    pub surface_capabilities: vk::SurfaceCapabilities,
-    pub surface_formats: Vec<(vk::Format, vk::ColorSpace)>,
-    pub present_modes: Vec<vk::PresentMode>,
+    pub surface_capabilities: SurfaceCapabilities,
+    pub surface_formats: Vec<(Format, ColorSpace)>,
+    pub present_modes: Vec<PresentMode>,
 }
 
 impl VwDevice {
-    pub fn new(vk_instance: Arc<vk::Instance>, surface: Arc<vk::Surface>) -> anyhow::Result<Self> {
+    pub fn new(vk_instance: Arc<Instance>, surface: Arc<Surface>) -> anyhow::Result<Self> {
         let vk_physical_device = pick_physical_device(vk_instance.clone())?;
 
         println!(
@@ -58,40 +68,40 @@ impl VwDevice {
         })
     }
 
-    pub fn logical_device(&self) -> Arc<vk::Device> {
+    pub fn logical_device(&self) -> Arc<Device> {
         self.vk_logical_device.clone()
     }
 
-    pub fn surface(&self) -> Arc<vk::Surface> {
+    pub fn surface(&self) -> Arc<Surface> {
         self.vk_surface.clone()
     }
 
-    pub fn graphics_queue(&self) -> Arc<vk::Queue> {
+    pub fn graphics_queue(&self) -> Arc<Queue> {
         self.vk_graphics_queue.clone()
     }
 
-    pub fn present_queue(&self) -> Arc<vk::Queue> {
+    pub fn present_queue(&self) -> Arc<Queue> {
         self.vk_present_queue.clone()
     }
 }
 
-const REQUIRED_DEVICE_EXTENSIONS: vk::DeviceExtensions = vk::DeviceExtensions {
+const REQUIRED_DEVICE_EXTENSIONS: DeviceExtensions = DeviceExtensions {
     khr_swapchain: true,
     khr_spirv_1_4: false,
     khr_synchronization2: false,
     khr_create_renderpass2: false,
-    ..vk::DeviceExtensions::empty()
+    ..DeviceExtensions::empty()
 };
 
-const REQUIRED_FEATURES: vk::DeviceFeatures = vk::DeviceFeatures {
+const REQUIRED_FEATURES: DeviceFeatures = DeviceFeatures {
     geometry_shader: true,
     dynamic_rendering: true,
     shader_draw_parameters: true,
     extended_dynamic_state: true,
-    ..vk::DeviceFeatures::empty()
+    ..DeviceFeatures::empty()
 };
 
-fn is_device_suitable(device: &Arc<vk::PhysicalDevice>) -> bool {
+fn is_device_suitable(device: &Arc<PhysicalDevice>) -> bool {
     let queue_families = device.queue_family_properties();
     let features = device.supported_features();
     let properties = device.properties();
@@ -99,14 +109,14 @@ fn is_device_suitable(device: &Arc<vk::PhysicalDevice>) -> bool {
 
     if !queue_families
         .iter()
-        .any(|qfp| qfp.queue_flags.intersects(vk::QueueFlags::GRAPHICS))
+        .any(|qfp| qfp.queue_flags.intersects(QueueFlags::GRAPHICS))
     {
         return false;
     }
     if !features.contains(&REQUIRED_FEATURES) {
         return false;
     }
-    if properties.api_version < vk::Version::V1_3 {
+    if properties.api_version < Version::V1_3 {
         return false;
     }
     if !extensions.contains(&REQUIRED_DEVICE_EXTENSIONS) {
@@ -116,7 +126,7 @@ fn is_device_suitable(device: &Arc<vk::PhysicalDevice>) -> bool {
     true
 }
 
-fn pick_physical_device(instance: Arc<vk::Instance>) -> anyhow::Result<Arc<vk::PhysicalDevice>> {
+fn pick_physical_device(instance: Arc<Instance>) -> anyhow::Result<Arc<PhysicalDevice>> {
     let physical_devices = instance.enumerate_physical_devices()?;
 
     let mut best_score = 0;
@@ -126,7 +136,7 @@ fn pick_physical_device(instance: Arc<vk::Instance>) -> anyhow::Result<Arc<vk::P
         let mut score = 0;
         let properties = device.properties();
 
-        if properties.device_type == vk::PhysicalDeviceType::DiscreteGpu {
+        if properties.device_type == PhysicalDeviceType::DiscreteGpu {
             score += 1000;
         }
 
@@ -146,14 +156,14 @@ fn pick_physical_device(instance: Arc<vk::Instance>) -> anyhow::Result<Arc<vk::P
 }
 
 fn pick_graphics_present_queues(
-    physical_device: Arc<vk::PhysicalDevice>,
-    surface: &vk::Surface,
+    physical_device: Arc<PhysicalDevice>,
+    surface: &Surface,
 ) -> (u32, u32) {
     let queue_families = physical_device.queue_family_properties();
 
     // Find a queue family that supports both graphics and presentation to the given surface
     let graphics_present_index = queue_families.iter().enumerate().find_map(|(index, qfp)| {
-        if qfp.queue_flags.intersects(vk::QueueFlags::GRAPHICS)
+        if qfp.queue_flags.intersects(QueueFlags::GRAPHICS)
             && physical_device
                 .surface_support(index as u32, surface)
                 .unwrap()
@@ -172,7 +182,7 @@ fn pick_graphics_present_queues(
         .iter()
         .enumerate()
         .find_map(|(index, qfp)| {
-            if qfp.queue_flags.intersects(vk::QueueFlags::GRAPHICS) {
+            if qfp.queue_flags.intersects(QueueFlags::GRAPHICS) {
                 Some(index as u32)
             } else {
                 None
@@ -199,27 +209,27 @@ fn pick_graphics_present_queues(
 }
 
 fn create_logical_device(
-    physical_device: Arc<vk::PhysicalDevice>,
-    surface: &vk::Surface,
-) -> anyhow::Result<(Arc<vk::Device>, Arc<vk::Queue>, Arc<vk::Queue>)> {
+    physical_device: Arc<PhysicalDevice>,
+    surface: &Surface,
+) -> anyhow::Result<(Arc<Device>, Arc<Queue>, Arc<Queue>)> {
     // List all queue families in the device
     let (graphics_index, present_index) =
         pick_graphics_present_queues(physical_device.clone(), surface);
 
-    let device_queue_create_info = vk::QueueCreateInfo {
+    let device_queue_create_info = QueueCreateInfo {
         queue_family_index: graphics_index,
         queues: vec![1.0], // Queue priorities
         ..Default::default()
     };
 
-    let device_create_info = vk::DeviceCreateInfo {
+    let device_create_info = DeviceCreateInfo {
         queue_create_infos: vec![device_queue_create_info],
         enabled_extensions: REQUIRED_DEVICE_EXTENSIONS,
         enabled_features: REQUIRED_FEATURES,
         ..Default::default()
     };
 
-    let (device, queues) = vk::Device::new(physical_device, device_create_info)?;
+    let (device, queues) = Device::new(physical_device, device_create_info)?;
     let queues = queues.collect::<Vec<_>>();
 
     let graphics_queue = queues

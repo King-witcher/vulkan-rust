@@ -1,9 +1,12 @@
 use std::{sync::Arc, vec};
 
 use sdl::{event::Event, keyboard::Scancode};
+use vulkano::{
+    VulkanLibrary,
+    instance::{Instance, InstanceCreateFlags, InstanceCreateInfo, InstanceExtensions},
+};
 
 use crate::{
-    vk,
     vw_engine::{vw_device::VwDevice, vw_pipeline::VwPipeline, vw_swapchain::VwSwapchain},
     vw_window::{VwWindow, VwWindowCreateInfo},
 };
@@ -13,8 +16,8 @@ mod vw_pipeline;
 mod vw_swapchain;
 
 pub struct VkWizardEngine {
-    vk_library: Arc<vk::VulkanLibrary>,
-    vk_instance: Arc<vk::Instance>,
+    vk_library: Arc<VulkanLibrary>,
+    vk_instance: Arc<Instance>,
 
     vw_device: VwDevice,
     vw_swapchain: VwSwapchain,
@@ -24,7 +27,7 @@ pub struct VkWizardEngine {
 
 impl VkWizardEngine {
     pub fn new() -> anyhow::Result<Self> {
-        let vk_library = vk::VulkanLibrary::new()?;
+        let vk_library = VulkanLibrary::new()?;
         let vk_instance = create_vulkan_instance(vk_library.clone())?;
 
         let vw_window = VwWindow::new(VwWindowCreateInfo {
@@ -70,7 +73,7 @@ impl VkWizardEngine {
     }
 }
 
-fn create_vulkan_instance(vk_lib: Arc<vk::VulkanLibrary>) -> anyhow::Result<Arc<vk::Instance>> {
+fn create_vulkan_instance(vk_lib: Arc<VulkanLibrary>) -> anyhow::Result<Arc<Instance>> {
     let supported_extensions = vk_lib.supported_extensions();
     if !supported_extensions.khr_surface {
         list_supported_extensions(&vk_lib);
@@ -85,10 +88,10 @@ fn create_vulkan_instance(vk_lib: Arc<vk::VulkanLibrary>) -> anyhow::Result<Arc<
         ));
     }
 
-    let enabled_extensions = vk::InstanceExtensions {
+    let enabled_extensions = InstanceExtensions {
         khr_surface: true,
         khr_win32_surface: true,
-        ..vk::InstanceExtensions::empty()
+        ..InstanceExtensions::empty()
     };
 
     let mut enabled_layers: Vec<String> = vec![];
@@ -96,8 +99,8 @@ fn create_vulkan_instance(vk_lib: Arc<vk::VulkanLibrary>) -> anyhow::Result<Arc<
         enabled_layers.push("VK_LAYER_KHRONOS_validation".into());
     }
 
-    let instance_create_info = vk::InstanceCreateInfo {
-        flags: vk::InstanceCreateFlags::empty(),
+    let instance_create_info = InstanceCreateInfo {
+        flags: InstanceCreateFlags::empty(),
         application_name: Some("VkWizard Game".into()),
         application_version: vulkano::Version {
             major: 1,
@@ -123,12 +126,12 @@ fn create_vulkan_instance(vk_lib: Arc<vk::VulkanLibrary>) -> anyhow::Result<Arc<
     if cfg!(debug_assertions) {
         println!("Attaching validation layers, please wait...");
     }
-    let vk_instance = vk::Instance::new(vk_lib, instance_create_info).unwrap();
+    let vk_instance = Instance::new(vk_lib, instance_create_info).unwrap();
 
     Ok(vk_instance)
 }
 
-fn list_supported_extensions(vk_lib: &vk::VulkanLibrary) {
+fn list_supported_extensions(vk_lib: &VulkanLibrary) {
     println!("Supported extensions:");
     for ext in vk_lib.supported_extensions().into_iter() {
         if let (ext, true) = ext {
