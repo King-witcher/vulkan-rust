@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
-use ash::vk::ShaderStageFlags;
 use vulkano::{
-    pipeline::{PipelineShaderStageCreateFlags, PipelineShaderStageCreateInfo},
+    pipeline::{
+        PipelineLayout, PipelineShaderStageCreateFlags, PipelineShaderStageCreateInfo,
+        graphics::GraphicsPipelineCreateInfo,
+    },
     shader::{EntryPoint, ShaderModule, ShaderModuleCreateInfo, ShaderStage},
 };
 
@@ -26,10 +28,16 @@ impl VwPipeline {
             .entry_point("fragment")
             .expect("Couldn't find fragment entry point");
 
-        let vert_shader_stage_info = PipelineShaderStageCreateInfo::new(vert_entry_point);
+        let vert_stage_info = PipelineShaderStageCreateInfo::new(vert_entry_point);
+        let frag_stage_info = PipelineShaderStageCreateInfo::new(frag_entry_point);
+
         let test: PipelineShaderStageCreateInfo = PipelineShaderStageCreateInfo {
             ..PipelineShaderStageCreateInfo::new(frag_entry_point)
         };
+
+        let layout = PipelineLayout::new(device.logical_device(), Default::default())?;
+
+        let createInfo = GraphicsPipelineCreateInfo::layout(layout);
 
         Ok(VwPipeline {})
     }

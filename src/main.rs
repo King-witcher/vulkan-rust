@@ -2,7 +2,7 @@ extern crate ash;
 extern crate sdl2 as sdl;
 extern crate smallvec;
 extern crate vulkano;
-// mod vw_engine;
+mod vw_engine;
 mod vw_engine2;
 // mod vw_window;
 

@@ -1,9 +1,16 @@
+use std::sync::Arc;
+
 use anyhow::bail;
 use ash::vk;
 
+use crate::vw_engine2::vw_device2::VwDevice2;
+
+mod vw_device2;
+
 pub struct VwEngine2 {
     _entry: ash::Entry,
-    instance: ash::Instance,
+    instance: Arc<ash::Instance>,
+    device: VwDevice2,
 }
 
 impl VwEngine2 {
@@ -12,10 +19,13 @@ impl VwEngine2 {
         let entry = Entry::linked();
 
         let instance = unsafe { create_instance(&entry)? };
+        let instance = Arc::new(instance);
+        let device = VwDevice2::new(instance.clone())?;
 
         Ok(VwEngine2 {
             _entry: entry,
             instance,
+            device,
         })
     }
 }
